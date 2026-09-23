@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carga EV</title>
+<style>
+  :root{
+    --bg:#F3F5F8; --surface:#FFFFFF; --ink:#1B222C; --muted:#6B7686; --line:#DCE1E8;
+    --energy:#1F7AE0; --energy-soft:#E3EEFB; --money:#B5730A; --money-soft:#FBF1DD;
+    --track:#E6EAF0; --focus:#1F7AE0;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14181F; --surface:#1D232D; --ink:#E8ECF2; --muted:#8A94A6; --line:#2A323E;
+      --energy:#4FA8FF; --energy-soft:#1B2C42; --money:#F2B544; --money-soft:#3A2E14;
+      --track:#2A323E; --focus:#4FA8FF;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14181F; --surface:#1D232D; --ink:#E8ECF2; --muted:#8A94A6; --line:#2A323E;
+    --energy:#4FA8FF; --energy-soft:#1B2C42; --money:#F2B544; --money-soft:#3A2E14;
+    --track:#2A323E; --focus:#4FA8FF;
+  }
+  *,*::before,*::after{box-sizing:inherit}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+  body{
+    margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:17px;line-height:1.4;
+    -webkit-font-smoothing:antialiased;
+  }
+  main{max-width:520px;margin:0 auto;padding:20px 18px 40px}
+  h1{font-size:22px;font-weight:600;margin:6px 0 18px;letter-spacing:-0.01em}
+
+  /* carros */
+  .cars{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:18px}
+  .car{
+    appearance:none;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);
+    border-radius:14px;padding:12px 12px;text-align:left;cursor:pointer;font:inherit;
+  }
+  .car b{display:block;font-weight:600;font-size:16px}
+  .car small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+  .car[aria-pressed="true"]{border-color:var(--energy);background:var(--energy-soft)}
+  .car:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+  /* percentagens */
+  .pct{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:10px;margin-bottom:22px}
+  .pct label{display:block;color:var(--muted);font-size:14px;margin-bottom:6px}
+  .field{position:relative}
+  .field input{
+    width:100%;font:inherit;font-size:34px;font-weight:600;font-variant-numeric:tabular-nums;
+    padding:8px 40px 8px 14px;border:1.5px solid var(--line);border-radius:14px;
+    background:var(--surface);color:var(--ink);
+  }
+  .field input:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+  .field span{position:absolute;right:14px;bottom:14px;font-size:20px;color:var(--muted)}
+  .arrow{color:var(--muted);font-size:26px;padding-bottom:14px}
+
+  /* medidor */
+  .gauge{margin:0 0 6px}
+  .gauge svg{width:100%;height:auto;display:block}
+
+  /* resultado */
+  .hero{text-align:center;margin:10px 0 18px}
+  .hero .big{
+    font-size:64px;font-weight:700;line-height:1;color:var(--energy);
+    font-variant-numeric:tabular-nums;letter-spacing:-0.02em;
+  }
+  .hero .big small{font-size:26px;font-weight:600;margin-left:6px}
+  .hero .sub{color:var(--muted);margin-top:8px;font-size:16px}
+  .hero .time{font-size:20px;font-weight:600;margin-top:10px;font-variant-numeric:tabular-nums}
+  .hero .note{color:var(--muted);font-size:14px;margin-top:6px}
+
+  /* custos */
+  .costs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:22px}
+  .cost{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:12px 10px;text-align:center}
+  .cost .v{font-size:22px;font-weight:700;color:var(--money);font-variant-numeric:tabular-nums}
+  .cost .k{color:var(--muted);font-size:13px;margin-top:2px}
+  .cost.solar .v{color:var(--ink)}
+
+  /* afinar */
+  details{border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;color:var(--muted);font-size:15px;list-style:none;display:flex;justify-content:space-between;align-items:center}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";font-size:22px;color:var(--muted)}
+  details[open] summary::after{content:"–"}
+  .tune{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:12px}
+  .tune label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .tune input{
+    width:100%;font:inherit;font-size:17px;padding:9px 11px;border:1.5px solid var(--line);
+    border-radius:10px;background:var(--surface);color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  .tune input:focus-visible{outline:3px solid var(--focus);outline-offset:1px}
+  .tune .full{grid-column:1/-1}
+  .hint{color:var(--muted);font-size:13px;margin-top:10px}
+  .reset{margin-top:12px;appearance:none;background:none;border:1.5px solid var(--line);color:var(--muted);
+    border-radius:10px;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
+  @media (prefers-reduced-motion:no-preference){
+    .gauge rect.sel{transition:x .25s ease,width .25s ease}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Quanto carrega o carro?</h1>
+
+  <div class="cars" id="cars" role="group" aria-label="Carro"></div>
+
+  <div class="pct">
+    <div>
+      <label for="from">Está a</label>
+      <div class="field"><input id="from" type="number" inputmode="numeric" min="0" max="100" value="36"><span>%</span></div>
+    </div>
+    <div class="arrow" aria-hidden="true">→</div>
+    <div>
+      <label for="to">Quero</label>
+      <div class="field"><input id="to" type="number" inputmode="numeric" min="0" max="100" value="80"><span>%</span></div>
+    </div>
+  </div>
+
+  <div class="gauge" aria-hidden="true">
+    <svg viewBox="0 0 520 56">
+      <rect x="2" y="6" width="500" height="44" rx="10" fill="none" stroke="var(--line)" stroke-width="3"/>
+      <rect x="506" y="18" width="10" height="20" rx="3" fill="var(--line)"/>
+      <rect id="gBase" x="8" y="12" width="0" height="32" rx="6" fill="var(--track)"/>
+      <rect id="gSel" class="sel" x="8" y="12" width="0" height="32" rx="6" fill="var(--energy)"/>
+    </svg>
+  </div>
+
+  <div class="hero" aria-live="polite">
+    <div class="big"><span id="kwh">0</span><small>kWh</small></div>
+    <div class="sub">para a bateria</div>
+    <div class="time" id="time">—</div>
+    <div class="note" id="note"></div>
+  </div>
+
+  <div class="costs">
+    <div class="cost"><div class="v" id="cVazio">0 €</div><div class="k">em vazio</div></div>
+    <div class="cost"><div class="v" id="cFora">0 €</div><div class="k">fora-vazio</div></div>
+    <div class="cost solar"><div class="v">0 €</div><div class="k">do solar</div></div>
+  </div>
+
+  <details>
+    <summary>Afinar valores</summary>
+    <div class="tune">
+      <div><label for="usable">Bateria útil (kWh)</label><input id="usable" type="number" step="0.1" inputmode="decimal"></div>
+      <div><label for="kw">Carregador (kW)</label><input id="kw" type="number" step="0.1" inputmode="decimal"></div>
+      <div><label for="eff">Rendimento da carga (%)</label><input id="eff" type="number" step="1" inputmode="numeric"></div>
+      <div></div>
+      <div><label for="pVazio">Preço vazio (€/kWh)</label><input id="pVazio" type="number" step="0.001" inputmode="decimal"></div>
+      <div><label for="pFora">Preço fora-vazio (€/kWh)</label><input id="pFora" type="number" step="0.001" inputmode="decimal"></div>
+    </div>
+    <p class="hint">A bateria útil e o carregador mudam com o carro escolhido; os preços (com IVA) ficam guardados neste telemóvel.</p>
+    <button class="reset" id="reset" type="button">Repor valores de fábrica</button>
+  </details>
+</main>
+
+<script>
+(function(){
+  const CARS = [
+    {id:'q6',   name:'Audi Q6 Sportback', sub:'performance',      usable:95,   kw:11},
+    {id:'ipace',name:'Jaguar I-Pace',     sub:'1.ª geração, monofásico 7 kW', usable:85, kw:7},
+    {id:'glc',  name:'Mercedes GLC',      sub:'300e (ajusta se for o elétrico)', usable:25, kw:11},
+    {id:'yoyo', name:'XEV Yoyo',          sub:'tomada doméstica', usable:10.3, kw:2.5},
+  ];
+  const DEF = {eff:90, pVazio:0.186, pFora:0.269};
+
+  const $ = id => document.getElementById(id);
+  const carsEl=$('cars'), from=$('from'), to=$('to'),
+        usable=$('usable'), kw=$('kw'), eff=$('eff'), pVazio=$('pVazio'), pFora=$('pFora');
+
+  let state = {car:'q6', overrides:{}, prices:{...DEF}};
+  function load(){
+    try{ const s = localStorage.getItem('cargaev'); if(s){ const p=JSON.parse(s); state={...state,...p, prices:{...DEF,...(p.prices||{})}}; } }catch(e){}
+  }
+  function save(){ try{ localStorage.setItem('cargaev', JSON.stringify(state)); }catch(e){} }
+
+  function car(){ return CARS.find(c=>c.id===state.car) || CARS[0]; }
+  function specs(){
+    const c=car(), o=state.overrides[c.id]||{};
+    return {usable:o.usable??c.usable, kw:o.kw??c.kw};
+  }
+
+  function renderCars(){
+    carsEl.innerHTML='';
+    CARS.forEach(c=>{
+      const b=document.createElement('button');
+      b.type='button'; b.className='car'; b.setAttribute('aria-pressed', c.id===state.car);
+      b.innerHTML=`<b>${c.name}</b><small>${c.sub||(c.usable+' kWh')}</small>`;
+      b.addEventListener('click',()=>{ state.car=c.id; save(); renderCars(); fillTune(); calc(); });
+      carsEl.appendChild(b);
+    });
+  }
+  function fillTune(){
+    const s=specs();
+    usable.value=s.usable; kw.value=s.kw;
+    eff.value=state.prices.eff; pVazio.value=state.prices.pVazio; pFora.value=state.prices.pFora;
+  }
+
+  const fmtN = (n,d=0)=> n.toLocaleString('pt-PT',{minimumFractionDigits:d,maximumFractionDigits:d});
+  function fmtTime(h){
+    if(!isFinite(h)||h<=0) return '—';
+    const m=Math.round(h*60), hh=Math.floor(m/60), mm=m%60;
+    return hh? `${hh} h ${String(mm).padStart(2,'0')} min` : `${mm} min`;
+  }
+
+  function calc(){
+    const a=Math.min(100,Math.max(0,+from.value||0)), b=Math.min(100,Math.max(0,+to.value||0));
+    const s=specs(), e=(+state.prices.eff||90)/100;
+    const delta=Math.max(b-a,0);
+    const kwhBat=delta/100*s.usable, kwhGrid=e>0?kwhBat/e:0, hours=s.kw>0?kwhGrid/s.kw:0;
+
+    $('kwh').textContent = fmtN(kwhBat, kwhBat<10?1:0);
+    $('time').textContent = delta>0 ? `≈ ${fmtTime(hours)} a ${fmtN(s.kw,1)} kW` : 'Nada a carregar';
+    $('note').textContent = delta>0
+      ? `${fmtN(kwhGrid, kwhGrid<10?1:0)} kWh da rede, contando perdas de carga`
+      : (b<a ? 'A percentagem pretendida tem de ser maior do que a atual.' : '');
+    $('cVazio').textContent = fmtN(kwhGrid*(+state.prices.pVazio||0),2)+' €';
+    $('cFora').textContent  = fmtN(kwhGrid*(+state.prices.pFora||0),2)+' €';
+
+    const W=484, x0=8;
+    $('gBase').setAttribute('width', W*a/100);
+    $('gSel').setAttribute('x', x0+W*a/100);
+    $('gSel').setAttribute('width', W*delta/100);
+  }
+
+  [from,to].forEach(i=>i.addEventListener('input',calc));
+  usable.addEventListener('input',()=>{ (state.overrides[state.car]??={}).usable=+usable.value; save(); calc(); });
+  kw.addEventListener('input',()=>{ (state.overrides[state.car]??={}).kw=+kw.value; save(); calc(); });
+  eff.addEventListener('input',()=>{ state.prices.eff=+eff.value; save(); calc(); });
+  pVazio.addEventListener('input',()=>{ state.prices.pVazio=+pVazio.value; save(); calc(); });
+  pFora.addEventListener('input',()=>{ state.prices.pFora=+pFora.value; save(); calc(); });
+  $('reset').addEventListener('click',()=>{ state.overrides={}; state.prices={...DEF}; save(); fillTune(); calc(); });
+
+  load(); renderCars(); fillTune(); calc();
+})();
+</script>
+</body>
+</html>
